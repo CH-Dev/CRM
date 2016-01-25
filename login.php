@@ -536,7 +536,7 @@ if($accountype=="9"||$accountype=="99"||$accountype=="7"){
 		}
 	}
 	echo "<tr>";
-	echo "<td><input type='text' name='zoneA' style='width: 3em'></td>";
+	
 	echo "<td><select name='zone'>";
 	$zsql="SELECT DISTINCT Zone FROM numbers";
 	$result = mysqli_query($conn, $zsql);
