@@ -1,0 +1,97 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="/Main Style.css">
+<title>CoolHeat comfort CRM</title>
+<link rel="shortcut icon" href="/icon.ico" />
+</head>
+<body>
+<div id="numsect">
+<?php
+session_start();
+
+echo "your next number is:";
+getnextnumber();
+function getnextnumber(){
+	$idnum=$_SESSION["idnum"];
+	$sql="SELECT MIN(IDNKey),Pnumber,Fname,Lname,Address,Comments1,Comments2 FROM numbers WHERE AssignedUser='$idnum' AND Response='booked';";
+	//echo $sql;
+	$conn = new mysqli($_SESSION["servername"], $_SESSION["Dusername"], $_SESSION["Dpassword"],$_SESSION["dbname"]);
+	// Check connection
+	if ($conn->connect_error) {
+		die("Connection failed: " . $conn->connect_error);
+	}
+	$result = mysqli_query($conn, $sql);
+	if (mysqli_num_rows($result) ==1) {
+		$row = $result->fetch_assoc();
+		echo "#".$row["Pnumber"]."<br>".$row["Fname"].",".$row["Lname"]."<br>".$row["Address"]."<br>".$row["Comments1"]."<br>".$row["Comments2"];
+	$_SESSION["IDNKey"]=$row["MIN(IDNKey)"];
+	//echo "IDKey=".$_SESSION["IDNKey"];
+	}
+	elseif(mysqli_num_rows($result) ==0){
+		echo "Tell Aric your out of rows!";
+		echo $sql;
+	}
+	else{
+		echo "Error code #1 Get Next Number else statement was triggered,$username<br>,$sql<br> !go get Aric and show him this!";
+	}
+}
+?>
+</div>
+<div id="resultsect">
+<form action="/CallCenterAgents/callresult.php" method="post">
+Response:<select name='rad'>
+<option value='booked'>booked</option>
+<option value='DNC'>Do Not Call</option>
+<option value='NA'>No Answer</option>
+<option value='NI'>Not Interested</option>
+<option value='o'>Uncalled</option>
+<option value='oo'>No Answer</option>
+<option value='NS'>No Signal</option>
+<option value='CB'>Call Back</option>
+<option value='DNQ'>Does Not Qualify</option>
+</select><br>
+Appointment type:<br>
+Furnace:<input type="checkbox" name="check[]" value="f"> A/C:<input type="checkbox" name="check[]" value="a"><br>
+Water Tank:<input type="checkbox" name="check[]" value="t"> Boiler:<input type="checkbox" name="check[]" value="b"><br>
+</div>
+<div id="datasect">
+Age of AC:<br><input type="text" name="acage" value="0"><br>
+Age of Furnace:<br><input type="text" name="fage" value="0"><br>
+Call Back date:<br><input type="date" name="cbtime"><br>
+Call Back time:<br><input type="time" name="cbt"><br>
+<?php 
+echo "Time Slot:<select name='Btime'>";
+session_start();
+$conn = new mysqli($_SESSION["servername"], $_SESSION["Dusername"], $_SESSION["Dpassword"],$_SESSION["dbname"]);
+// Check connection
+if ($conn->connect_error) {
+	die("Connection failed: " . $conn->connect_error);
+}
+$date = substr(date('Y/m/d H:i:s'),0,10);
+$date=str_replace('/', '-', $date);
+$sql="SELECT * FROM shifts WHERE Date>'$date' AND slots>'0' AND type='sa';";
+$result = mysqli_query($conn, $sql);
+while($row = $result->fetch_assoc()) {
+	$date=$row["Date"];
+	$start=$row["Start"];
+	$end=$row["End"];
+	$idkey=$row["IDKey"];
+	echo "<option value='$idkey'>$date, $start - $end</option>";
+}
+echo "</select>";
+?>
+
+</div>
+<div id="comsect">
+Comments(500chars):<br><input type="text" name="comment" maxlength="500" size="80" value=" "><br>
+Comments2(500chars):<br><input type="text" name="comment2" maxlength="500" size="80" value=" "><br>
+<input type="submit" value="submit">
+</div>
+</form>
+<?php 
+$pass=$_SESSION["password"];$user=$_SESSION["username"];
+echo "<form action='/login.php' method='post'>	<input type='text' name='user' value='$user' hidden><br> <input type='text' name='pass' value='$pass' hidden><br>
+Back:<input type='submit' value='Main Menu'></form><br>";
+?>
+</body>
+</html>
