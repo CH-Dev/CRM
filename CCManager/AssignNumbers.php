@@ -16,13 +16,7 @@ if ($conn->connect_error) {
 	die("Connection failed: " . $conn->connect_error);
 }
 $idnum=$_SESSION["idnum"];
-$zonea=$_POST["zoneA"];
-if($zonea===NULL){
-	$zone=$_POST["zoneZ"];
-}
-else{
-	$zone=$zonea;
-}
+$zone=$_POST["zone"];
 
 $who=$_POST["who"];
 
