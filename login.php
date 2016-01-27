@@ -412,7 +412,7 @@ elseif($accountype=="7"){//Training Call Center Manager
 		</form></td></tr>
 			
 		<form action='/CCManager/AssignNumbers.php' method='post'>
-				<tr><td>Assign Numbers:</td><td>Zone:<select name='zoneZ'>";
+				<tr><td>Assign Numbers:</td><td>Zone:<select name='zone'>";
 	$zsql="SELECT Zone FROM numbers GROUP BY Zone";
 	$result = mysqli_query($conn, $zsql);
 	while($row = $result->fetch_assoc()) {
@@ -806,13 +806,13 @@ if($accountype=="9"||$accountype=="99"||$accountype=="7"){
 	echo "<tr>";
 	echo "<td><select name='zone'>";
 	echo "<option value=''>Blind</option>";
-	/*$zsql="SELECT Zone,COUNT(*) FROM numbers WHERE (Response IS NULL OR Response='o') GROUP BY Zone";
+	$zsql="SELECT Zone,COUNT(*) FROM numbers WHERE (Response IS NULL OR Response='o') GROUP BY Zone";
 	$result = mysqli_query($conn, $zsql);
 	while($row = $result->fetch_assoc()) {
 		$z=$row["Zone"];
 		$C=$row["COUNT(*)"];
 		echo "<option value='$z'>$z - $C</option>";
-	}*/
+	}
 	echo "</select></td>";
 	echo "<td><input type='submit' value='&#10004'></form></td>";
 	if($accountype=="9"){
