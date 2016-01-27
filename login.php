@@ -28,7 +28,6 @@ if ($conn->connect_error) {
 $username=$_SESSION["username"];
 $password=$_SESSION["password"];
 //echo "<br>".$username.$password."connected";
-
 	$sql = "SELECT IDKey,AccountType,Cpoints FROM agents WHERE UserName = '$username' AND Password = '$password';";
 	//echo "<br>".$sql."<br>";
 	$result = mysqli_query($conn, $sql);
@@ -36,7 +35,6 @@ $password=$_SESSION["password"];
 		//echo "Logged in successfully as:$username<br>";
 		while($row = $result->fetch_assoc()){
 			$cpoints=$row["Cpoints"];
-			
 			$accountype=$row["AccountType"];
 			$_SESSION["AccountType"]=$accountype;
 			$_SESSION["idnum"]= $row["IDKey"];
@@ -44,7 +42,9 @@ $password=$_SESSION["password"];
 			if($accountype==0){
 				echo "Your current Point total is: $cpoints<br>";
 			}
-			//echo "id: ". $row["IDKey"]. "<br>";
+			$datestamp=date("Y-m-d H:i:s");   
+			$track="INSERT INTO logins (AgentID,TimeStamp) VALUE ('$idnum','$datestamp')";
+			mysqli_query($conn, $track);
 		}
 	}
 	else {
@@ -66,9 +66,6 @@ if($accountype=="0"){//Callcenter Agents
 			<form action='/CallCenterAgents/viewbookings.php' method='post'>
 		<tr><td>Bookings:</td><td><input type='submit' value='My Bookings'>
 		</form></td></tr>
-			<form action='/Calendar/event.php' method='post'>
-		<tr><td>Shifts:</td><td><input type='submit' value='Shifts'>
-		</form></td></tr>
 			<form action='/Calendar/startpunch.php' method='post'>
 		<tr><td>punch in/out:</td><td><input type='submit' value='Timeclock'>
 		</form></td></tr>
@@ -78,7 +75,19 @@ elseif($accountype=="1"){//Salesman
 	echo "<link rel='stylesheet' type='text/css'' href='Big Style.css'>";
 	$date = substr(date('Y/m/d H:i:s'),0,10);
 	$date=str_replace('/', '-', $date);
-	if($_POST["mode"]==1){
+	$workingdate = date_create($date);
+	date_modify($workingdate, '-1 day');
+	$yesterday=date_format($workingdate, 'Y-m-d');
+	$ysql="SELECT Count(*) FROM bookings WHERE AppointmentID IN (SELECT IDKey FROM shifts WHERE Date='$yesterday') AND Cancelled IS NULL AND IDNKey NOT IN (SELECT IDNKey FROM quotes) AND SalesmanID='$idnum'";
+	$yresult = mysqli_query($conn, $ysql);
+	$yrow = $yresult->fetch_assoc();
+	$yestres=$yrow["Count(*)"];
+	if($yestres!=0){
+	//	echo "Previous Day incomplete, Please complete previous day.";
+	//	$date=$yesterday;//                   This is the Second part of the Yesterday lock!
+	}
+	//if($_POST["mode"]==1&&$yestres==0){ //This is the Yesterday Lock for the salesman!
+	if($_POST["mode"]==1){//                Comment this Line out
 		$date=$_POST["date"];
 	}
 	echo "Today's leads";
@@ -89,8 +98,7 @@ elseif($accountype=="1"){//Salesman
 	<input type='text' name='mode' value='1' hidden>
 	<input type='date' class='updatetext' name='date'></td><td class='flagbox' valign='top'>
 	<input type='submit' value='Go' class='calbutton2'></form></td></tr>
-	<tr><td class='flagbox'>$date</td></tr></table>
-	";
+	<tr><td class='flagbox'>$date</td></tr></table>";
 	echo "<table cellpadding='0' cellspacing='0' class='calendar'>";
 	$sql="SELECT bookings.IDKey,numbers.IDNKey,numbers.Pnumber,numbers.Fname,numbers.Lname,numbers.Address,shifts.End,shifts.Start,bookings.Fflag,bookings.Aflag,bookings.Tflag,bookings.Bflag,bookings.Sflag FROM numbers INNER JOIN bookings ON numbers.IDNKey=bookings.IDNKey INNER JOIN shifts ON bookings.AppointmentID=shifts.IDKey WHERE Cancelled IS NULL AND shifts.Date='$date' AND SalesmanID='$idnum' ORDER BY shifts.Start";
 	$result = mysqli_query($conn, $sql);
@@ -116,10 +124,32 @@ elseif($accountype=="1"){//Salesman
 		echo "$fflag$aflag$bflag$tflag$sflag<br><br>";
 		//echo "</tr></table>";
 	}
+	$sql="SELECT bookings.IDKey,numbers.IDNKey,numbers.Pnumber,numbers.Fname,numbers.Lname,numbers.Address,shifts.End,shifts.Start,bookings.Fflag,bookings.Aflag,bookings.Tflag,bookings.Bflag,bookings.Sflag FROM numbers INNER JOIN bookings ON numbers.IDNKey=bookings.IDNKey INNER JOIN shifts ON bookings.RebookSlot=shifts.IDKey WHERE Cancelled IS NULL AND shifts.Date='$date' AND SalesmanID='$idnum' ORDER BY shifts.Start";
+	$result = mysqli_query($conn, $sql);
+	while($row = $result->fetch_assoc()){
+		//echo "<tr class='calendar-row'>";
+		$idb=$row["IDKey"];
+		$pnum=$row["Pnumber"];
+		$fname=$row["Fname"];
+		$lname=$row["Lname"];
+		$add=$row["Address"];
+		$address="<a href='https://maps.google.com?saddr=Current+Location&daddr=$add'>$add</a>";
+		$end=$row["End"];
+		$start=$row["Start"];
+		$fflag=echocheck($row["Fflag"]);
+		$aflag=echocheck($row["Aflag"]);
+		$tflag=echocheck($row["Tflag"]);
+		$bflag=echocheck($row["Bflag"]);
+		$sflag=echocheck($row["Sflag"]);
+		echo "<b>$start - $end</b><br>";
+		echo "<form action='/SalesAgents/updatebookings.php' method='post'><input type='submit' class='dayviewbutton' value='$fname $lname'><input type='text' name='rad' value='$idb'hidden></form><br>";
+		echo "$pnum<br>";
+		echo "$address<br>";
+		echo "$fflag$aflag$bflag$tflag$sflag<br><br>";
+		//echo "</tr></table>";
+	}
 	echo "<table><link rel='stylesheet' type='text/css'' href='Big Style.css'>";
-	echo "
-		
-			<form action='/SalesAgents/bookings.php' method='post'>
+	echo "<form action='/SalesAgents/bookings.php' method='post'>
 		<tr><td><input type='submit' class='salesbuttons' value='Bookings'>
 		</form></td>
 			<form action='/SalesAgents/quotes.php' method='post'>
@@ -160,7 +190,7 @@ elseif($accountype=="3")//Accounting
 	echo "</table>
 				<div id='accLeft'><table class='invis'>
 		<tr><td><form action='/Accounting/CloseJobs.php' method='post'>
-		<input type='submit' value='Completed Jobs'>
+		<input type='submit' value='Completed Jobs'><input type='text' value='0' name='mode' hidden>
 		</form></td></tr>
 		<tr><td><form action='/Accounting/OpenJobsList.php' method='post'>
 		<input type='submit' value='Opened Jobs'>
@@ -181,7 +211,7 @@ elseif($accountype=="3")//Accounting
 		}
 		echo "</select>
 			<select name='who'>";
-		$sql="SELECT * FROM agents WHERE AccountType='0' OR AccountType='1' OR Comm IS NOT NULL ORDER BY DateofTermination";
+		$sql="SELECT * FROM agents WHERE (AccountType='0' OR AccountType='1' OR AccountType='7') AND Comm IS NOT NULL ORDER BY Lname";
 		$result = mysqli_query($conn, $sql);
 		while($row = $result->fetch_assoc()) {
 			$id=$row["IDKey"];
@@ -191,6 +221,85 @@ elseif($accountype=="3")//Accounting
 		echo "</select>
 		<input type='submit' value='View Payments'>
 		</form></td></tr>
+				<tr><td><form action='/Accounting/ViewWeek.php' method='post'>
+				<select name='week'>";
+		$sql="SELECT * FROM weeks ORDER BY PayDate DESC";
+		$result = mysqli_query($conn, $sql);
+		while($row = $result->fetch_assoc()) {
+			$wid=$row["IDKey"];
+			$pay=$row["PayDate"];
+			echo "<option value='$wid'>$pay</option>";
+		}
+		echo "</select>
+		<input type='submit' value='Week View'>
+		</form></td></tr>
+						<tr><td>
+						<form action='Accounting/Monthview.php' method='post'><select name='month'>
+						<option value='01'>January</option>
+						<option value='02'>February</option>
+						<option value='03'>March</option>
+						<option value='04'>April</option>
+						<option value='05'>May</option>
+						<option value='06'>June</option>
+						<option value='07'>July</option>
+						<option value='08'>August</option>
+						<option value='09'>September</option>
+						<option value='10'>October</option>
+						<option value='11'>November</option>
+						<option value='12'>December</option>
+						</select>
+						<select name='year'>
+						<option value='2014'>2014</option>
+						<option value='2015'>2015</option>
+						<option value='2016'>2016</option>
+						</select>
+						<input type='submit' value='Month'>
+						S<input type='radio' name='date' value='StartDate'>
+						C<input type='radio' name='date' value='DateofCompletion'>
+						</form>
+						</td>
+						
+						
+						<tr><td>
+						<form action='Inventory/viewWarranties.php' method='post'><select name='month'>
+						<option value='01'>January</option>
+						<option value='02'>February</option>
+						<option value='03'>March</option>
+						<option value='04'>April</option>
+						<option value='05'>May</option>
+						<option value='06'>June</option>
+						<option value='07'>July</option>
+						<option value='08'>August</option>
+						<option value='09'>September</option>
+						<option value='10'>October</option>
+						<option value='11'>November</option>
+						<option value='12'>December</option>
+						</select>
+						<select name='year'>
+						<option value='2016'>2016</option>
+						<option value='2017'>2017</option>
+						<option value='2018'>2018</option>
+						<option value='2019'>2019</option>
+						<option value='2020'>2020</option>
+						<option value='2021'>2021</option>
+						<option value='2022'>2022</option>
+						<option value='2023'>2023</option>
+						</select>
+						<input type='submit' value='Cleanings'>
+						</form>
+						</td>
+						<tr><td>Inventory</td></tr>
+						<form action='/Inventory/viewstock.php' method='post'>
+		<tr><td><input type='submit' value='Add Stock'><input type='text' name='mode' value='0' hidden><input type='text' name='cat' value='1' hidden></form>
+				<form action='/Inventory/viewstock.php' method='post'>
+		<input type='submit' value='Remove Stock'><input type='text' name='mode' value='3' hidden><input type='text' name='cat' value='1' hidden></form></td></tr>
+				<form action='/Inventory/CreateCat.php' method='post'>
+		<tr><td><input type='submit' value='Create Category'></form></td></tr>
+				<form action='/Inventory/CreateUnit.php' method='post'>
+		<tr><td><input type='submit' value='Create Unit'></form></td></tr>
+				<form action='/Inventory/createitem.php' method='post'>
+		<tr><td><input type='submit' value='Create Item'></form></td></tr>
+						
 				<form action='/ToDoList.php' method='post'>
 		<input type='text' name='mode' value='0' hidden>
 		<tr><td><input type='submit' value='To Do List' class='salesbuttons'>
@@ -204,7 +313,7 @@ elseif($accountype=="3")//Accounting
 				
 				</table></div>";
 		echo "<div id='accRight'><table class='invis'>";
-		$sql="SELECT quotes.IDNKey,quotes.IDKey,quotes.Price,quotes.DateIssued,numbers.Lname FROM quotes INNER JOIN numbers ON quotes.IDNKey=numbers.IDNKey WHERE quotes.RequestJob='1' AND (quotes.Approved='0' OR quotes.Approved IS NULL)";
+		$sql="SELECT quotes.Pwar,quotes.Lwar,quotes.Cnums,quotes.IDNKey,quotes.IDKey,quotes.Price,quotes.DateIssued,numbers.Lname FROM quotes INNER JOIN numbers ON quotes.IDNKey=numbers.IDNKey WHERE quotes.RequestJob='1' AND (quotes.Approved='0' OR quotes.Approved IS NULL)";
 		$result = mysqli_query($conn, $sql);
 		while($row = $result->fetch_assoc()){
 			echo "<tr><td class='invis'>";
@@ -213,12 +322,16 @@ elseif($accountype=="3")//Accounting
 			$ln=$row["Lname"];
 			$idq=$row["IDKey"];
 			$IDNKey=$row["IDNKey"];
+			$Lwar=$row["Lwar"];
+			$Pwar=$row["Pwar"];
+			$Cnums=$row["Cnums"];
 			$sql2="SELECT * FROM invoices WHERE IDNKey='$IDNKey'";
 			$result2 = mysqli_query($conn, $sql2);
 			$row2 = $result2->fetch_assoc();
 			$Invoicekey=$row2["IDKey"];
 			echo "<form action='/Accounting/viewdetails.php' method='post'><input type='submit' class='dayviewbutton' value='$ln-$price, $date'><input type='text' name='rad' value='$IDNKey'hidden><input type='text' value='0' name='mode' hidden></form>";
-			echo "<form action='/Accounting/viewdetails.php' method='post'><input type='submit' class='dayviewbutton' value='Invoice#:$Invoicekey'><input type='text' name='rad' value='$IDNKey'hidden><input type='text' value='0' name='mode' hidden></form>";
+			echo "<form action='/Accounting/viewdetails.php' method='post'><input type='submit' class='dayviewbutton' value='$Lwar/Labour,$Pwar/Parts,$Cnums/Cleanings'><input type='text' name='rad' value='$IDNKey'hidden><input type='text' value='0' name='mode' hidden></form>";
+			echo "<form action='/Accounting/removequote.php' method='post'><input type='submit' value='Remove'><input type='text' name='rad' value='$idq' hidden><input type='text' value='0' name='mode' hidden></form>";
 			echo "</td></tr>";
 		}
 		echo"</table></div>";
@@ -227,7 +340,7 @@ elseif($accountype=="4"){//Inventory Manager
 	echo "Please Choose an Action:
 				<br>
 				<form action='/Inventory/viewitem.php' method='post'>
-		<tr><td>View Inventory:</td><td><input type='submit' value='View Items'></form></td></tr>
+		<tr><td>View Inventory:</td><td><input type='submit' value='View Items'><input type='text' name='mode' value='0' hidden></form></td></tr>
 					<form action='/Inventory/CreateCat.php' method='post'>
 		<tr><td>Create Category:</td><td><input type='submit' value='Create Category'></form></td></tr>
 					<form action='/Inventory/CreateUnit.php' method='post'>
@@ -240,7 +353,6 @@ elseif($accountype=="4"){//Inventory Manager
 		<tr><td>Add Number:</td><td><input type='submit' value='Add Number'></form></td></tr>
 				<form action='/Inventory/viewjobs.php' method='post'>
 		<tr><td>View Jobs:</td><td><input type='submit' value='Jobs'></form></td></tr>
-				
 				";
 }
 elseif($accountype=="5"){//Cleaner
@@ -252,16 +364,30 @@ elseif($accountype=="5"){//Cleaner
 		";
 }
 elseif($accountype=="6"){//Training Sales Manager
-	echo "Please Choose an Action
-			<form action='/SalesAgents/bookings.php' method='post'>
-		<tr><td>View Bookings:</td><td><input type='submit' value='Bookings'></form></td></tr>
-			<form action='/SalesAgents/quotes.php' method='post'>
-		<tr><td>Search Quotes:</td><td><input type='submit' value='Quotes'></form></td></tr>
-			<form action='/SalesManager/createreminder.php' method='post'>
-		<tr><td>Create Reminder:</td><td><input type='submit' value='Create'></form></td></tr>
-			<form action='/Admin/Addnumber.php' method='post'>
-		<tr><td>Add Numbers Manually:</td><td><input type='submit' value='Create'></form></td></tr>
-		";
+	echo "<link rel='stylesheet' type='text/css' href='Big Style.css'>";
+	echo "<table>
+				<tr><form action='/SalesManager/bookings.php' method='post'>
+					<td><input type='submit' value='Assign Bookings' class='salesbuttons'></form></td>
+				<form action='/SalesManager/quotes.php' method='post'>
+					<td><input type='submit' value='View Quotes' class='salesbuttons'></form></td></tr>
+				<tr><form action='/SalesManager/viewagents.php' method='post'>
+					<td><input type='submit' value='View Bookings' class='salesbuttons'></form></td>
+				<form action='/Calendar/event.php' method='post'>
+					<td><input type='submit' value='Create Slots' class='salesbuttons'></form></td></tr>
+				<tr><form action='/ads/ads.php' method='post'>
+					<td><input type='submit' value='Create Ad' class='salesbuttons'></form></td>
+				<form action='/SalesManager/uploadpamphlet.php' method='post'>
+					<td><input type='submit' value='Upload a PDF' class='salesbuttons'></form></td></tr>
+				<tr><form action='/Admin/Addnumber.php' method='post'>
+					<td><input type='submit' value='Manual Booking' class='salesbuttons'></form></td>
+				<form action='/SalesManager/createreminder.php' method='post'>
+					<td><input type='submit' value='Create Reminders' class='salesbuttons'><input type='text'name='idn' value='0' hidden></form></td></tr>
+				<tr><form action='/ToDoList.php' method='post'>
+					<input type='text' name='mode' value='0' hidden>
+					<td><input type='submit' value='To Do List' class='salesbuttons'></form></td>
+				<form action='index.php' method='post'>
+					<td><input type='submit' value='Logout' class='salesbuttons'></form></td></tr>
+				";
 }
 elseif($accountype=="7"){//Training Call Center Manager
 	echo "	Please Choose an Action:
@@ -287,7 +413,7 @@ elseif($accountype=="7"){//Training Call Center Manager
 			
 		<form action='/CCManager/AssignNumbers.php' method='post'>
 				<tr><td>Assign Numbers:</td><td>Zone:<select name='zoneZ'>";
-	$zsql="SELECT DISTINCT Zone FROM numbers";
+	$zsql="SELECT Zone FROM numbers GROUP BY Zone";
 	$result = mysqli_query($conn, $zsql);
 	while($row = $result->fetch_assoc()) {
 		$z=$row["Zone"];
@@ -297,7 +423,7 @@ elseif($accountype=="7"){//Training Call Center Manager
 	echo "</select>
 		</td><td>Agent:<select name='who'>";
 	
-	$ysql="SELECT IDKey,Fname FROM agents WHERE (SupervisorID IN (SELECT SupervisorID FROM agents WHERE IDKey='$idnum') AND AccountType='0') OR (SupervisorID='$idnum' OR IDKey='$idnum') GROUP BY IDKey";
+	$ysql="SELECT IDKey,Fname FROM agents WHERE (AccountType='0' OR AccountType='7') AND DateofTermination IS NULL";
 	
 	
 	$result = mysqli_query($conn, $ysql);
@@ -307,9 +433,19 @@ elseif($accountype=="7"){//Training Call Center Manager
 		$id=$row["IDKey"];
 		echo "<option value='$id'>$z $id</option>";
 	}
-	echo"</select><input type='submit' value='Assign Numbers'></form></td></tr>";		
+	echo"</select><input type='submit' value='Assign Numbers'></form></td></tr>";
+	echo "<tr><td>Unassign Numbers:<form action='/CCManager/UnassignNumbers.php' method='post'>
+	</td><td>Agent:<select name='who'>";
+	$result = mysqli_query($conn, $ysql);
+	while($row = $result->fetch_assoc()) {
+	$z=$row["Fname"];
+	$id=$row["IDKey"];
+	echo "<option value='$id'>$z $id</option>";
+	}
+		echo "</select><input type='submit' value='Unassign Numbers'></form></td></tr>";
 }
 elseif($accountype=="9"){//Call Center Manager
+	echo "<link rel='stylesheet' type='text/css' href='Main Style.css'>";
 	echo "Please Choose an Action:
 				<br>
 				<form action='/CCManager/registerUser.php' method='post'>
@@ -325,7 +461,7 @@ elseif($accountype=="9"){//Call Center Manager
 		</form></td></tr>
 		<tr><td>Unassign Numbers:<form action='/CCManager/UnassignNumbers.php' method='post'>
 			</td><td>Agent:<select name='who'>";
-	$ysql="SELECT * FROM agents WHERE SupervisorID='$idnum'";
+	$ysql="SELECT * FROM agents WHERE SupervisorID='$idnum' AND DateofTermination IS NULL";
 	$result = mysqli_query($conn, $ysql);
 	while($row = $result->fetch_assoc()) {
 		$z=$row["Fname"];
@@ -333,6 +469,23 @@ elseif($accountype=="9"){//Call Center Manager
 		echo "<option value='$id'>$z $id</option>";
 	}
 		echo "</select><input type='submit' value='Unassign Numbers'></form></td></tr>";
+		echo "<form action='/SalesManager/bookings.php' method='post'>
+		<tr><td>Assign Bookings:</td><td><input type='submit' value='Bookings'></form></td></tr>";
+		echo "<tr><td>Week View:</td><td><form action='/Accounting/ViewWeek.php' method='post'>
+		<select name='week'>";
+		$sql="SELECT * FROM weeks ORDER BY PayDate DESC";
+		$result = mysqli_query($conn, $sql);
+		while($row = $result->fetch_assoc()) {
+		$wid=$row["IDKey"];
+		$wid=$wid+3;
+		$pay=$row["PayDate"];
+		echo "<option value='$wid'>$pay</option>";
+		}
+		echo "</select>
+				<input type='submit' value='Week View'>
+				</form></td></tr>";
+		
+		
 		echo "<form action='/Admin/Addnumber.php' method='post'>
 		<tr><td>Add Customers Manually:</td><td><input type='submit' value='Create'></form></td></tr>
 		<form action='/Admin/createquote.php' method='post'>
@@ -350,16 +503,17 @@ elseif($accountype=="9"){//Call Center Manager
 		<tr><td>Manage Ads:</td><td><input type='submit' value='Create Ad'></form></td></tr>
 				<form action='/CCManager/AssignNumbers.php' method='post'>
 				<tr><td>Assign Numbers:</td><td>Zone:<select name='zoneZ'>";
-	$zsql="SELECT DISTINCT Zone FROM numbers";
+	$zsql="SELECT Zone,COUNT(*) FROM numbers WHERE (Response IS NULL OR Response='o') AND (AssignedUser='0' OR AssignedUser IS NULL) GROUP BY Zone";
 	$result = mysqli_query($conn, $zsql);
 	while($row = $result->fetch_assoc()) {
 		$z=$row["Zone"];
-		echo "<option value='$z'>$z</option>";
+		$C=$row["COUNT(*)"];
+		echo "<option value='$z'>$z - $C</option>";
 	}
 	
 	echo "</select>
 			</td><td>Agent:<select name='who'>";
-	$ysql="SELECT * FROM agents WHERE SupervisorID='$idnum'";
+	$ysql="SELECT * FROM agents WHERE (AccountType='0' OR AccountType='7') AND DateofTermination IS NULL";
 	$result = mysqli_query($conn, $ysql);
 	echo "<option value='$0'>All</option>";
 	while($row = $result->fetch_assoc()) {
@@ -373,7 +527,6 @@ elseif($accountype=="9"){//Call Center Manager
 			<form action='/CCManager/AssignNumbers.php' method='post'>
 				<tr><td>Street Mode:</td><td><input type='text' name='zoneA'>
 			</td><td>Agent:<select name='who'>";
-	$ysql="SELECT * FROM agents WHERE SupervisorID='$idnum'";
 	$result = mysqli_query($conn, $ysql);
 	echo "<option value='$0'>All</option>";
 	while($row = $result->fetch_assoc()) {
@@ -399,27 +552,31 @@ elseif($accountype=="10"){//Crew Leader
 		";
 }
 elseif($accountype=="11"){//Sales Manager
-	echo "Please Choose an Action:
-				<br>
-				<form action='/SalesManager/bookings.php' method='post'>
-		<tr><td>Manage Bookings:</td><td><input type='submit' value='Bookings'></form></td></tr>
+	echo "<link rel='stylesheet' type='text/css' href='Big Style.css'>";
+	echo "<table>
+				
+				<tr><form action='/SalesManager/bookings.php' method='post'>
+					<td><input type='submit' value='Assign Bookings' class='salesbuttons'></form></td>
 				<form action='/SalesManager/quotes.php' method='post'>
-		<tr><td>Manage Quotes:</td><td><input type='submit' value='Quotes'></form></td></tr>
-				<form action='/SalesManager/viewagents.php' method='post'>
-		<tr><td>View Agents:</td><td><input type='submit' value='View'></form></td></tr>
+					<td><input type='submit' value='View Quotes' class='salesbuttons'></form></td></tr>
+				<tr><form action='/SalesManager/viewagents.php' method='post'>
+					<td><input type='submit' value='View Bookings' class='salesbuttons'></form></td>
 				<form action='/Calendar/event.php' method='post'>
-		<tr><td>View Calendar:</td><td><input type='submit' value='Shifts'></form></td></tr>
-				<form action='/ads/ads.php' method='post'>
-		<tr><td>Manage Ads:</td><td><input type='submit' value='Create Ad'></form></td></tr>
+					<td><input type='submit' value='Create Slots' class='salesbuttons'></form></td></tr>
+				<tr><form action='/ads/ads.php' method='post'>
+					<td><input type='submit' value='Create Ad' class='salesbuttons'></form></td>
 				<form action='/SalesManager/uploadpamphlet.php' method='post'>
-		<tr><td>Manage Pamphlets:</td><td><input type='submit' value='Upload a Pamphlet'></form></td></tr>
-				<form action='/Admin/Addnumber.php' method='post'>
-		<tr><td>Add Numbers Manually:</td><td><input type='submit' value='Create'></form></td></tr>
-				<form action='/Admin/createquote.php' method='post'>
-		<tr><td>Autoregister quotes:</td><td><input type='submit' value='Create'>WARNING:AutoRegister MUST only be used after adding numbers Manually! DO NOT USE OTHERWISE</form>	</td></tr>
+					<td><input type='submit' value='Upload a PDF' class='salesbuttons'></form></td></tr>
+				<tr><form action='/Admin/Addnumber.php' method='post'>
+					<td><input type='submit' value='Manual Booking' class='salesbuttons'></form></td>
 				<form action='/SalesManager/createreminder.php' method='post'>
-		<tr><td>Create Reminder:</td><td><input type='submit' value='Create'></form></td></tr>
-		";
+					<td><input type='submit' value='Create Reminders' class='salesbuttons'><input type='text'name='idn' value='0' hidden></form></td></tr>
+				<tr><form action='/ToDoList.php' method='post'>
+					<input type='text' name='mode' value='0' hidden>
+					<td><input type='submit' value='To Do List' class='salesbuttons'></form></td>
+				<form action='index.php' method='post'>
+					<td><input type='submit' value='Logout' class='salesbuttons'></form></td></tr>
+				";
 }
 elseif($accountype=="12"){//Administrator
 	echo "Please Choose an Action:
@@ -435,6 +592,120 @@ elseif($accountype=="12"){//Administrator
 				<form action='/Admin/reports.php' method='post'>
 		<tr><td>Check Reports:</td><td><input type='submit' value='View'></form></td></tr>	
 		";
+}
+elseif($accountype=="14"){//Salesman/manager hybrid
+	echo "<link rel='stylesheet' type='text/css'' href='Big Style.css'>";
+	$date = substr(date('Y/m/d H:i:s'),0,10);
+	$date=str_replace('/', '-', $date);
+	$workingdate = date_create($date);
+	date_modify($workingdate, '-1 day');
+	$yesterday=date_format($workingdate, 'Y-m-d');
+	$ysql="SELECT Count(*) FROM bookings WHERE AppointmentID IN (SELECT IDKey FROM shifts WHERE Date='$yesterday') AND Cancelled IS NULL AND IDNKey NOT IN (SELECT IDNKey FROM quotes) AND SalesmanID='$idnum'";
+	$yresult = mysqli_query($conn, $ysql);
+	$yrow = $yresult->fetch_assoc();
+	$yestres=$yrow["Count(*)"];
+	if($yestres!=0){
+	//	echo "Previous Day incomplete, Please complete previous day.";
+	//	$date=$yesterday;//                   This is the Second part of the Yesterday lock!
+	}
+	//if($_POST["mode"]==1&&$yestres==0){ //This is the Yesterday Lock for the salesman!
+	if($_POST["mode"]==1){//                Comment this Line out
+		$date=$_POST["date"];
+	}
+	echo "Today's leads";
+	echo "<table class='flags'>";
+	echo "<tr><td class='flagbox' valign='top'><form action='/login.php' method='post'>
+	<input type='text' name='user' hidden value='$username'>
+	<input type='password' name='pass' hidden value='$password'>
+	<input type='text' name='mode' value='1' hidden>
+	<input type='date' class='updatetext' name='date'></td><td class='flagbox' valign='top'>
+	<input type='submit' value='Go' class='calbutton2'></form></td></tr>
+	<tr><td class='flagbox'>$date</td></tr></table>";
+	echo "<table cellpadding='0' cellspacing='0' class='calendar'>";
+	$sql="SELECT bookings.IDKey,numbers.IDNKey,numbers.Pnumber,numbers.Fname,numbers.Lname,numbers.Address,shifts.End,shifts.Start,bookings.Fflag,bookings.Aflag,bookings.Tflag,bookings.Bflag,bookings.Sflag FROM numbers INNER JOIN bookings ON numbers.IDNKey=bookings.IDNKey INNER JOIN shifts ON bookings.AppointmentID=shifts.IDKey WHERE Cancelled IS NULL AND shifts.Date='$date' AND SalesmanID='$idnum' ORDER BY shifts.Start";
+	$result = mysqli_query($conn, $sql);
+	while($row = $result->fetch_assoc()){
+		//echo "<tr class='calendar-row'>";
+		$idb=$row["IDKey"];
+		$pnum=$row["Pnumber"];
+		$fname=$row["Fname"];
+		$lname=$row["Lname"];
+		$add=$row["Address"];
+		$address="<a href='https://maps.google.com?saddr=Current+Location&daddr=$add'>$add</a>";
+		$end=$row["End"];
+		$start=$row["Start"];
+		$fflag=echocheck($row["Fflag"]);
+		$aflag=echocheck($row["Aflag"]);
+		$tflag=echocheck($row["Tflag"]);
+		$bflag=echocheck($row["Bflag"]);
+		$sflag=echocheck($row["Sflag"]);
+		echo "<b>$start - $end</b><br>";
+		echo "<form action='/SalesAgents/updatebookings.php' method='post'><input type='submit' class='dayviewbutton' value='$fname $lname'><input type='text' name='rad' value='$idb'hidden></form><br>";
+		echo "$pnum<br>";
+		echo "$address<br>";
+		echo "$fflag$aflag$bflag$tflag$sflag<br><br>";
+		//echo "</tr></table>";
+	}
+	$sql="SELECT bookings.IDKey,numbers.IDNKey,numbers.Pnumber,numbers.Fname,numbers.Lname,numbers.Address,shifts.End,shifts.Start,bookings.Fflag,bookings.Aflag,bookings.Tflag,bookings.Bflag,bookings.Sflag FROM numbers INNER JOIN bookings ON numbers.IDNKey=bookings.IDNKey INNER JOIN shifts ON bookings.RebookSlot=shifts.IDKey WHERE Cancelled IS NULL AND shifts.Date='$date' AND SalesmanID='$idnum' ORDER BY shifts.Start";
+	$result = mysqli_query($conn, $sql);
+	while($row = $result->fetch_assoc()){
+		//echo "<tr class='calendar-row'>";
+		$idb=$row["IDKey"];
+		$pnum=$row["Pnumber"];
+		$fname=$row["Fname"];
+		$lname=$row["Lname"];
+		$add=$row["Address"];
+		$address="<a href='https://maps.google.com?saddr=Current+Location&daddr=$add'>$add</a>";
+		$end=$row["End"];
+		$start=$row["Start"];
+		$fflag=echocheck($row["Fflag"]);
+		$aflag=echocheck($row["Aflag"]);
+		$tflag=echocheck($row["Tflag"]);
+		$bflag=echocheck($row["Bflag"]);
+		$sflag=echocheck($row["Sflag"]);
+		echo "<b>$start - $end</b><br>";
+		echo "<form action='/SalesAgents/updatebookings.php' method='post'><input type='submit' class='dayviewbutton' value='$fname $lname'><input type='text' name='rad' value='$idb'hidden></form><br>";
+		echo "$pnum<br>";
+		echo "$address<br>";
+		echo "$fflag$aflag$bflag$tflag$sflag<br><br>";
+		//echo "</tr></table>";
+	}
+	echo "<table><link rel='stylesheet' type='text/css'' href='Big Style.css'>";
+	echo "<form action='/SalesAgents/bookings.php' method='post'>
+		<tr><td><input type='submit' class='salesbuttons' value='Bookings'>
+		</form></td>
+			<form action='/SalesAgents/quotes.php' method='post'>
+		<td><input type='submit' class='salesbuttons' value='Quotes'>
+		</form></td></tr><tr>
+			<form action='/SalesManager/createreminder.php' method='post'>
+		<td><input type='number' value='0' name='idn' hidden><input type='submit' class='salesbuttons' value='Create Reminder'></form></td>
+			<form action='/Admin/Addnumber.php' method='post'>
+		<td><input class='salesbuttons' type='submit' value='Create Lead'></form></td></tr>
+			<form action='/SalesAgents/viewReminders.php' method='post'>
+		<input type='text' name='mode' value='0' hidden>
+		<tr><td><input type='submit' value='Follow Ups' class='salesbuttons'>
+		</form></td>
+			<form action='/ToDoList.php' method='post'>
+		<input type='text' name='mode' value='0' hidden>
+		<td><input type='submit' value='To Do List' class='salesbuttons'>
+		</form></td></tr>
+			<tr><form action='/SalesManager/bookings.php' method='post'>
+		<td><input type='submit' value='Assign Bookings' class='salesbuttons'></form></td>
+			<form action='/Calendar/event.php' method='post'>
+		<td><input type='submit' value='Create Slots' class='salesbuttons'></form></td></tr>
+		<form action='/SalesManager/quotes.php' method='post'>
+					<tr><td><input type='submit' value='View Quotes' class='salesbuttons'></form></td>
+				<form action='/SalesManager/viewagents.php' method='post'>
+					<td><input type='submit' value='View Bookings' class='salesbuttons'></form></td></tr>
+				<tr><form action='index.php' method='post'>
+		<td><input type='submit' value='Logout' class='salesbuttons'></form></td></tr>";
+	//<form action='/Calendar/event.php' method='post'>
+	//<tr><td>Shifts:</td><td><input type='submit' value='Shifts'>
+	//</form></td></tr>
+}//Random emily account
+elseif($accountype=="15"){
+	echo "<form action='/ads/ads.php' method='post'>
+	<tr><td>Manage Ads:</td><td><input type='submit' value='Create Ad'></form></td></tr>";
 }
 elseif($accountype=="99"){
 	echo "
@@ -472,7 +743,7 @@ elseif($accountype=="99"){
 }
 
 $_SESSION["accounttype"]=$accountype;
-if($accountype!=1&&$accountype!=3){
+if($accountype!=1&&$accountype!=3&&$accountype!=11&&$accountype!=14){
 	echo "<form action='/ToDoList.php' method='post'>
 	<tr><td>To Do List:</td><input type='text' name='mode' value='0' hidden>
 	<td><input type='submit' value='To Do List' class='salesbuttons'>
@@ -489,6 +760,7 @@ if($accountype!=1&&$accountype!=3){
 </table>
 
 <?php //Write out the extra HUD for Call Center Managers
+
 echo "</div>";
 $date = substr(date('Y/m/d H:i:s'),0,10);
 $ddate=str_replace('/', '-', $date);
@@ -496,7 +768,7 @@ if($accountype=="9"||$accountype=="99"||$accountype=="7"){
 	echo "<div id='HUDsect'>";
 	echo "<table class='sortable'>";
 	echo "<form action='/CCManager/AssignNumbers.php' method='post'>";
-	$sql="SELECT IDKey,Fname,Lname,Cpoints FROM agents WHERE (SupervisorID IN (SELECT SupervisorID FROM agents WHERE IDKey='$idnum') AND AccountType='0') OR (SupervisorID='$idnum' OR IDKey='$idnum') GROUP BY IDKey";
+	$sql="SELECT IDKey,Fname,Lname,Cpoints FROM agents WHERE (AccountType='0' OR AccountType='7') AND DateofTermination IS NULL GROUP BY IDKey";
 	$result = mysqli_query($conn, $sql);
 	echo "<tr>";
 	echo "<td title='Agents First Name'>FN</td>";
@@ -515,42 +787,56 @@ if($accountype=="9"||$accountype=="99"||$accountype=="7"){
 		$oosql="SELECT count(*) FROM ootracker WHERE AgentID='$idt' AND DateofContact='$ddate'";
 		$ooresult=mysqli_query($conn, $oosql);
 		$oorow=$ooresult->fetch_assoc();
-		$bsql="SELECT count(*) FROM numbers WHERE Response='o' AND AssignedUser='$idt'";
+		$bsql="SELECT count(*) FROM numbers WHERE (Response='o' OR Response IS NULL) AND AssignedUser='$idt'";
 		$bresult = mysqli_query($conn, $bsql);
 		$brow = $bresult->fetch_assoc();
 		$rnum=$brow["count(*)"];
-		$csql="SELECT count(*) FROM numbers WHERE Response<>'o' AND Response<>'oo' AND AssignedUser='$idt' AND DateofContact='$ddate'";
-		$cresult = mysqli_query($conn, $csql);
-		$crow = $cresult->fetch_assoc();
-		$cnum=$crow["count(*)"];
 		$coo=$oorow["count(*)"];
-		if($cnum>0||$coo>0){
+		if($coo>0){
 			echo "<tr>";
 			echo "<td><input type='radio' name='who' value='$idt'>$fn</td>";
 			echorow($ln);
 			echorow($idt);
 			echorow($cp);
-			echorow($rnum);
-			echorow($cnum+$coo);
+			echorow("$rnum");
+			echorow("$coo");
 			echo "</tr>";
 		}
 	}
 	echo "<tr>";
-	
-	echo "<td><select name='zone'>";
-	$zsql="SELECT DISTINCT Zone FROM numbers";
+	echo "<td><select name='zoneZ'>";
+	echo "<option value=''>Blind</option>";
+	/*$zsql="SELECT Zone,COUNT(*) FROM numbers WHERE (Response IS NULL OR Response='o') GROUP BY Zone";
 	$result = mysqli_query($conn, $zsql);
 	while($row = $result->fetch_assoc()) {
 		$z=$row["Zone"];
-		echo "<option value='$z'>$z</option>";
-	}
+		$C=$row["COUNT(*)"];
+		echo "<option value='$z'>$z - $C</option>";
+	}*/
 	echo "</select></td>";
 	echo "<td><input type='submit' value='&#10004'></form></td>";
 	if($accountype=="9"){
 		echo "<td><form action='/Admin/Reports.php' method='post'><input type='submit' value='Stats'></form></td>";
-		echo "<td><form action='/Admin/ooCDR.php' method='post'><input type='submit' value='CDR'></form></td>";
+		
 	}
+	echo "<td><form action='/Admin/ooCDR.php' method='post'><input type='submit' value='CDR'></form></td>";
 	echo "</tr>";
+	echo "</table>";
+	echo "</div>";
+}
+
+if($accountype==0||$accountype=="7"){
+	echo "<div id='HUDsect'>";
+	echo "<table class='invis'>";
+	$sql="SELECT * FROM reminders WHERE AgentID='$idnum' AND Note='1' ORDER BY Date DESC";
+	$result = mysqli_query($conn, $sql);
+	for($i=0;$i<4;$i++){
+		echo "<tr>";
+		$row = $result->fetch_assoc();
+		$txt=$row["Text"];
+		echorow($txt);
+		echo "</tr>";
+	}
 	echo "</table>";
 	echo "</div>";
 }
@@ -571,17 +857,16 @@ function echocheck($p){
 <br>
 <br>
 <?php
-if($accountype!=1&&$accountype!=3){
+if($accountype!=1&&$accountype!=3&&$accountype!=11&&$accountype!=14){
 echo "<div id='calsect'>"; 
 session_write_close();
 include '/Calendar/calendar.php';
 $syear = substr($date, 0,4);
 $smonth = substr($date, 5,2);
 //echo "Month:$smonth<br> Year:$syear<br>";
-echo draw_calendar($smonth,$syear,'1');
+//echo draw_calendar($smonth,$syear,'1');
 echo "</div>";
 if($accountype==1){
-	
 	echo "<table><form action='Editaccount.php' method='post'>
 	<tr><td><input type='submit' value='Edit'>
 	</form></td></tr>
@@ -591,6 +876,5 @@ if($accountype==1){
 }
 ?>
 </div>
-
 </body>
 </html>
