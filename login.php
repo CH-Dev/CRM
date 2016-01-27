@@ -804,7 +804,7 @@ if($accountype=="9"||$accountype=="99"||$accountype=="7"){
 		}
 	}
 	echo "<tr>";
-	echo "<td><select name='zoneZ'>";
+	echo "<td><select name='zone'>";
 	echo "<option value=''>Blind</option>";
 	/*$zsql="SELECT Zone,COUNT(*) FROM numbers WHERE (Response IS NULL OR Response='o') GROUP BY Zone";
 	$result = mysqli_query($conn, $zsql);
