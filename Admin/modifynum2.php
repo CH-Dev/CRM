@@ -28,36 +28,41 @@ echo "Number has been updated successfully!";
 $bsql="SELECT count(*) FROM bookings WHERE IDNKey='$idn'";
 $bresult = mysqli_query($conn, $bsql);
 $brow = $bresult->fetch_assoc();
-$flags=$_POST["check"];
-$Aflag='0';
-$Fflag='0';
-$Tflag='0';
-$Bflag='0';
-$l=count($flags);
-for($x=0;$x<$l;$x++){
-	if($flags[$x]=='a'){
-		$Aflag='1';
+if(isset($_POST["check"])){
+
+	$flags=$_POST["check"];
+	$flags="";
+	$Aflag='0';
+	$Fflag='0';
+	$Tflag='0';
+	$Bflag='0';
+	$l=count($flags);
+	for($x=0;$x<$l;$x++){
+		if($flags[$x]=='a'){
+			$Aflag='1';
+		}
+		else if($flags[$x]=='f'){
+			$Fflag='1';
+		}
+		else if($flags[$x]=='t'){
+			$Tflag='1';
+		}
+		else if($flags[$x]=='b'){
+			$Bflag='1';
+		}
 	}
-	else if($flags[$x]=='f'){
-		$Fflag='1';
+	if($brow["count(*)"] ==1 && $resp=='booked'){
+		$csql="UPDATE bookings SET LastContactID='$who',AppointmentID='$timeslot',DateofBooking='$ddate',Aflag='$Aflag',Fflag='$Fflag',Tflag='$Tflag',Bflag='$Bflag' WHERE IDNKey='$idn'";
+		mysqli_query($conn, $csql);
+		echo "The current booking has been updated!";
 	}
-	else if($flags[$x]=='t'){
-		$Tflag='1';
-	}
-	else if($flags[$x]=='b'){
-		$Bflag='1';
+	else if ($brow["count(*)"] ==0 && $resp=='booked') {
+		$csql="INSERT INTO bookings (IDNKey,LastContactID,AppointmentID,DateofBooking,Aflag,Fflag,Tflag,Bflag) VALUES ('$idn','$who','$timeslot','$ddate','$Aflag','$Fflag','$Tflag','$Bflag')";
+		mysqli_query($conn, $csql);
+		echo "A booking has been created successfuly!";
 	}
 }
-if($brow["count(*)"] ==1 && $resp=='booked'){
-	$csql="UPDATE bookings SET LastContactID='$who',AppointmentID='$timeslot',DateofBooking='$ddate',Aflag='$Aflag',Fflag='$Fflag',Tflag='$Tflag',Bflag='$Bflag' WHERE IDNKey='$idn'";
-	mysqli_query($conn, $csql);
-	echo "The current booking has been updated!";
-}
-else if ($brow["count(*)"] ==0 && $resp=='booked') {
-	$csql="INSERT INTO bookings (IDNKey,LastContactID,AppointmentID,DateofBooking,Aflag,Fflag,Tflag,Bflag) VALUES ('$idn','$who','$timeslot','$ddate','$Aflag','$Fflag','$Tflag','$Bflag')";
-	mysqli_query($conn, $csql);
-	echo "A booking has been created successfuly!";
-}
+
 $dsql="INSERT INTO notes (Text,AgentID,Date,IDNKey) VALUES ('$idnum has modified this number.',$idnum'','$ddate','$idn')";
 mysqli_query($conn, $dsql);
 ?>
