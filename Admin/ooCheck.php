@@ -57,7 +57,7 @@ if($_POST["mode"]!=1){
 else if($_POST["mode"]==1){
 	$resp=$_POST["rad"];
 	$add=$_POST["add"];
-	$add2=$_POST["addb"];
+	$addb=$_POST["addb"];
 	$sql2="SELECT count(Pnumber) FROM numbers WHERE Response='o' AND Address LIKE '%$add%$addb%'";
 	$result2 = mysqli_query($conn, $sql2);
 	$row2 = $result2->fetch_assoc();
@@ -81,7 +81,7 @@ Search for a Number:
 Mass Modify Mode:<br>
 <form action="/Admin/ooCheck.php" method="post">
 <input type="text" name="mode" hidden value="1">
-Address:<input type="text" name="add" style='width: 20em'><br>
+Address:<input type="text" name="add" style='width: 15em'><input type="text" name="addb" style='width: 15em'><br>
 Response:<select name='rad'>
 <option value='NA'>No Answer</option>
 <option value='booked'>booked</option>
