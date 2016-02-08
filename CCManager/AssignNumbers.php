@@ -23,11 +23,11 @@ $who=$_POST["who"];
 
 @assign(96,$zone,$idnum,$conn,$who);
 function assign($timestorun,$zone,$idnum,$conn,$who){
-	$numleft=94-$timestorun;
+	$numleft=96-$timestorun;
 	echo "<script type='text/javascript'>
       document.body.innerHTML = '';
       </script>";
-	echo "Assigning $numleft / 95 numbers!<br>";
+	echo "Assigning $numleft / 96 numbers!<br>";
 	ob_end_flush();
 	flush();
 	$timestorun--;

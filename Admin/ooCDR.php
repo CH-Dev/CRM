@@ -22,7 +22,7 @@ Address mode:<br>
 Mass Modify Mode:<br>
 <form action="/Admin/ooCheck.php" method="post">
 <input type="text" name="mode" hidden value="1">
-Address:<input type="text" name="add" style='width: 20em'><br>
+Address:<input type="text" name="add" style='width: 15em'><input type="text" name="addb" style='width: 15em'><br>
 Response:<select name='rad'>
 <option value='NA'>No Answer</option>
 <option value='booked'>booked</option>

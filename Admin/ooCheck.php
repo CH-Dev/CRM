@@ -57,12 +57,13 @@ if($_POST["mode"]!=1){
 else if($_POST["mode"]==1){
 	$resp=$_POST["rad"];
 	$add=$_POST["add"];
-	$sql2="SELECT count(Pnumber) FROM numbers WHERE Response='o' AND Address LIKE '%$add%'";
+	$add2=$_POST["addb"];
+	$sql2="SELECT count(Pnumber) FROM numbers WHERE Response='o' AND Address LIKE '%$add%$addb%'";
 	$result2 = mysqli_query($conn, $sql2);
 	$row2 = $result2->fetch_assoc();
 	$count=$row2["count(Pnumber)"];
 	echo "<br><b>$count</b> numbers have been modified(this can be undone by tech with this number $count<br>";
-	$sql="UPDATE numbers SET Response='$resp',Comments1='Mass Edited$count' WHERE Address LIKE '%$add%' AND Response='o'";
+	$sql="UPDATE numbers SET Response='$resp',Comments1='Mass Edited$count' WHERE Address LIKE '%$add%$addb%' AND Response='o'";
 	mysqli_query($conn, $sql);
 	
 }
