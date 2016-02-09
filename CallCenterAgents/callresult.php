@@ -18,6 +18,14 @@ $conn = new mysqli($_SESSION["servername"], $_SESSION["Dusername"], $_SESSION["D
 if ($conn->connect_error) {
 	die("Connection failed: " . $conn->connect_error);
 }
+$Response=$_POST["rad"];
+$oosql="INSERT INTO ootracker (DateofContact,Time,IDNKey,AgentID,Response) VALUES ('$date','$time','$idnkey','$idnum','$Response')";
+if (mysqli_query($conn, $oosql)) {
+	echo "New record created successfully<br>";
+} else {
+	echo "Error: " . $oosql . "<br>" . mysqli_error($conn);
+}
+
 $sql1="SELECT Pnumber FROM numbers WHERE IDNKey='$idnkey'";
 $result1 = mysqli_query($conn, $sql1);
 $row1 = $result1->fetch_assoc();
@@ -67,12 +75,8 @@ if($_POST["rad"]=="NA"){
 	echo "No answer!";
 	$mid= " Response='oo'";
 	$time=date("h:i:sa");
-	$oosql="INSERT INTO ootracker (DateofContact,Time,IDNKey,AgentID) VALUES ('$date','$time','$idnkey','$idnum')";//FINISH ME
-if (mysqli_query($conn, $oosql)) {
-		echo "New record created successfully<br>";
-	} else {
-		echo "Error: " . $oosql . "<br>" . mysqli_error($conn);
-	}
+	//FINISH ME
+
 }
 if($_POST["rad"]=="NI"){
 	echo "Not interested!";
