@@ -15,12 +15,14 @@ if ($conn->connect_error) {
 }
 $date = substr(date('Y/m/d H:i:s'),0,10);
 $date=str_replace('/', '-', $date);
-$sql="SELECT count(*) FROM numbers WHERE AssignedUser='$idnum' AND DateofContact='$date'AND Response!='o' AND Response<>'oo'";
 $oosql="SELECT count(*) FROM ootracker WHERE AgentID='$idnum' AND DateofContact='$date'";
+$oo2sql="SELECT count(*) FROM ootracker WHERE AgentID='$idnum' AND DateofContact='$date' AND Response='NA'";
 $result = mysqli_query($conn, $sql);
 $ooresult=mysqli_query($conn, $oosql);
+$ooresult2=mysqli_query($conn, $oosql2);
 $row = $result->fetch_assoc();
 $oorow=$ooresult->fetch_assoc();
+$oorow2=$ooresult2->fetch_assoc();
 $count=$row["count(*)"]+$oorow["count(*)"];
 echo "You've called ".$count." people today!";
 $sql="SELECT count(*) FROM numbers WHERE AssignedUser='$idnum' AND DateofContact='$date' AND Response='booked'";
@@ -31,7 +33,7 @@ $sql="SELECT count(*) FROM numbers WHERE AssignedUser='$idnum' AND Response='o'"
 $result = mysqli_query($conn, $sql);
 $row = $result->fetch_assoc();
 echo "<br>You have ".$row["count(*)"]." uncalled numbers left!";
-echo "<br>".$oorow["count(*)"]." people didn't answer so far today.";
+echo "<br>".$oorow2["count(*)"]." people didn't answer so far today.";
 $sql="SELECT count(*) FROM bookings WHERE LastContactID='$idnum'";
 $result = mysqli_query($conn, $sql);
 $row = $result->fetch_assoc();
