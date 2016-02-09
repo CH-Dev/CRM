@@ -18,6 +18,8 @@ $conn = new mysqli($_SESSION["servername"], $_SESSION["Dusername"], $_SESSION["D
 if ($conn->connect_error) {
 	die("Connection failed: " . $conn->connect_error);
 }
+
+$time=date("h:i:sa");
 $Response=$_POST["rad"];
 $oosql="INSERT INTO ootracker (DateofContact,Time,IDNKey,AgentID,Response) VALUES ('$date','$time','$idnkey','$idnum','$Response')";
 if (mysqli_query($conn, $oosql)) {
@@ -74,7 +76,6 @@ if($_POST["rad"]=="NS"){
 if($_POST["rad"]=="NA"){
 	echo "No answer!";
 	$mid= " Response='oo'";
-	$time=date("h:i:sa");
 	//FINISH ME
 
 }
