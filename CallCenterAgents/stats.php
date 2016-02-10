@@ -16,11 +16,9 @@ if ($conn->connect_error) {
 $date = substr(date('Y/m/d H:i:s'),0,10);
 $date=str_replace('/', '-', $date);
 $oosql="SELECT count(*) FROM ootracker WHERE AgentID='$idnum' AND DateofContact='$date'";
-$oo2sql="SELECT count(*) FROM ootracker WHERE AgentID='$idnum' AND DateofContact='$date' AND Response='NA'";
-$result = mysqli_query($conn, $sql);
+$oosql2="SELECT count(*) FROM ootracker WHERE AgentID='$idnum' AND DateofContact='$date' AND Response='NA'";
 $ooresult=mysqli_query($conn, $oosql);
 $ooresult2=mysqli_query($conn, $oosql2);
-$row = $result->fetch_assoc();
 $oorow=$ooresult->fetch_assoc();
 $oorow2=$ooresult2->fetch_assoc();
 $count=$row["count(*)"]+$oorow["count(*)"];
